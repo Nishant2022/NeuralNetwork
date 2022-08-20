@@ -1,3 +1,5 @@
+mod activation_functions;
+
 struct Layer {
     input_neuron_num: usize,
     output_neuron_num: usize,
