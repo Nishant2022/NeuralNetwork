@@ -1,13 +1,26 @@
+use rand::prelude::*;
 
-struct Layer {
+// Neural Network layer. Contains the weights between neurons.
+pub struct Layer {
     input_neuron_num: usize,
     output_neuron_num: usize,
     weights: Vec<f64>,
 }
 
 impl Layer {
-    fn new(input_neuron_num: u32, output_neuron_num: u32) -> Layer {
-        let weights: Vec<f64> = vec![0.0; ((input_neuron_num + 1) * output_neuron_num).try_into().unwrap()];
+    fn new(input_neuron_num: usize, output_neuron_num: usize) -> Layer {
+        // Create vector of weights
+        let mut weights: Vec<f64> = vec![0.0; (input_neuron_num + 1) * output_neuron_num];
+
+        // Randomly initialize weights
+        let epsilon_init: f64 = 6.0_f64.sqrt() / ((input_neuron_num + output_neuron_num) as f64).sqrt();
+        let mut rng = rand::thread_rng();
+
+        for i in 0..weights.len() {
+            weights[i] = rng.gen::<f64>() * 2.0 * epsilon_init - epsilon_init;
+        }
+
+        // Create and return layer
         Layer { 
             input_neuron_num: input_neuron_num.try_into().unwrap(), 
             output_neuron_num: output_neuron_num.try_into().unwrap(), 
@@ -23,7 +36,6 @@ impl Layer {
         for i in 0..self.output_neuron_num {
             for j in 0..(self.input_neuron_num + 1) {
                 outputs[i] += inputs[j] * self.weights[i * (self.input_neuron_num + 1) + j];
-                println!("{:?}", outputs);
             }
         }
 
@@ -53,6 +65,19 @@ mod tests {
         let outputs = layer.activate(&mut inputs);
 
         assert_eq!(outputs, vec![9.0, 21.0]);
+    }
+
+    #[test]
+    fn layer_random_initialization() {
+        let layer: Layer = Layer::new(4, 2);
+
+        // Make sure that epsilon was calculated correctly
+        for weight in &layer.weights {
+            assert!(weight.abs() <= 1.0);
+        }
+
+        // Make sure that weights are actually different
+        assert_ne!(layer.weights[0], layer.weights[1]);
     }
 
 }
