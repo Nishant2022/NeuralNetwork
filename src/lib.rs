@@ -1,4 +1,4 @@
-use activation_functions::ActivationFunction;
+use activation_functions::{ActivationFunction, SigmoidActivationFunction};
 use layer::Layer;
 
 mod activation_functions;
@@ -6,7 +6,7 @@ mod layer;
 
 struct NeuralNetwork {
     input_neuron_num: usize,
-    layers: Vec<Box<Layer<dyn ActivationFunction>>>,
+    layers: Vec<Layer>,
     input_created: bool,
     output_created: bool,
 }
@@ -35,12 +35,49 @@ impl NeuralNetwork {
         Ok(self)
     }
 
+    fn add_hidden_layer(mut self, input_neurons: usize, output_neurons: usize, activation_function: SigmoidActivationFunction) -> Result<Self, String> {
+
+        // If an input layer was not created or an output layer was created, return an error
+        if !self.input_created {
+            return Err("Input layer not created.".to_string());
+        }
+        if self.output_created {
+            return Err("Output layer was already created.".to_string());
+        }
+
+        // If first hidden layer
+        if self.layers.len() == 0 {
+            
+            // Check that input_neurons equals input_neuron_num (number of neurons in previous layer)
+            if self.input_neuron_num != input_neurons {
+                return Err("input_neurons of first hidden layer must match input_neurons of input layer".to_string());
+            }
+
+            let layer: Layer = Layer::new(input_neurons, output_neurons, activation_function);
+            self.layers.push(layer);
+
+            return Ok(self);
+        }
+        else {
+
+            // Check that input_neurons are equal to output neurons of previos layer
+            if self.layers[self.layers.len() - 1].get_input_layer_size() != input_neurons {
+                return Err(format!("input_neurons of hidden layer {} does not match output_neurons of previos layer", self.layers.len()));
+            }
+            
+            let layer: Layer = Layer::new(input_neurons, output_neurons, activation_function);
+            self.layers.push(layer);
+
+            return Ok(self);
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
 
     use crate::NeuralNetwork;
+    use crate::activation_functions::SigmoidActivationFunction;
 
     #[test]
     fn neural_network_creation() {
@@ -55,7 +92,7 @@ mod test {
     }
 
     #[test]
-    fn neural_network_input() {
+    fn neural_network_input_creation_success() {
 
         // Create new neural network with five input neurons
         let nn: NeuralNetwork = NeuralNetwork::new().add_input(5).unwrap();
@@ -64,6 +101,10 @@ mod test {
         assert_eq!(nn.layers.len(), 0);
         assert!(nn.input_created);
         assert!(!nn.output_created);
+    }
+
+    #[test]
+    fn neural_network_input_failure() {
 
         // Tests that an error is returned if more than one input layer is created
         let mut returns_error_when_incorrect: bool = false;
@@ -76,5 +117,76 @@ mod test {
         };
 
         assert!(returns_error_when_incorrect);
+    }
+
+
+    #[test]
+    fn hidden_layer_without_input() {
+
+        // Try to add a new hidden layer before the input layer
+        let mut returns_error_when_no_input = false;
+        let mut nn: NeuralNetwork = NeuralNetwork::new();
+        nn.input_created = true;
+        match nn.add_hidden_layer(5, 4, SigmoidActivationFunction) {
+            Ok(_) => {},
+            Err(_) => {
+                returns_error_when_no_input = true;
+            },
+        }
+
+        assert!(returns_error_when_no_input);
+    }
+
+    #[test]
+    fn hidden_layer_with_output() {
+        
+        // Try to add a new hidden layer after the output layer
+        let mut returns_error_when_existing_output = false;
+        let mut nn: NeuralNetwork = NeuralNetwork::new();
+        nn.output_created = true;
+        match nn.add_hidden_layer(5, 4, SigmoidActivationFunction) {
+            Ok(_) => {},
+            Err(_) => {
+                returns_error_when_existing_output = true;
+            },
+        }
+
+        assert!(returns_error_when_existing_output);
+    }
+
+    #[test]
+    fn hidden_layer_differing_input() {
+
+        // Try to add a new hidden layer with neurons that does not match input layer
+        let mut error_on_input_difference: bool = false;
+        let nn: NeuralNetwork = NeuralNetwork::new().add_input(5).unwrap();
+        match nn.add_hidden_layer(4, 4, SigmoidActivationFunction) {
+            Ok(_) => {},
+            Err(_) => {
+                error_on_input_difference = true;
+            },
+        }
+
+        assert!(error_on_input_difference);
+    }
+
+    #[test]
+    fn hidden_layer_different_hidden_layer_input() {
+
+        // Try to add a second hidden layer with neurons that do not match the first hidden layer
+        let mut error_on_input_difference: bool = false;
+        let nn: NeuralNetwork = NeuralNetwork::new();
+        let nn: NeuralNetwork = nn.add_input(5)
+            .unwrap()
+            .add_hidden_layer(5, 4, SigmoidActivationFunction)
+            .unwrap();
+        match nn.add_hidden_layer(10, 5, SigmoidActivationFunction) {
+            Ok(_) => {},
+            Err(_) => {
+                error_on_input_difference = true;
+            },
+        }
+
+        assert!(error_on_input_difference);
     }
 }
