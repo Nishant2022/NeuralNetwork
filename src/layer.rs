@@ -1,17 +1,17 @@
 use rand::prelude::*;
 
-use crate::activation_functions::ActivationFunction;
+use crate::activation_functions::SigmoidActivationFunction;
 
 // Neural Network layer. Contains the weights between neurons.
-pub struct Layer<T: ActivationFunction + ?Sized> {
+pub struct Layer {
     input_neuron_num: usize,
     output_neuron_num: usize,
     weights: Vec<f64>,
-    activation_function: T,
+    activation_function: SigmoidActivationFunction,
 }
 
-impl<T: ActivationFunction> Layer<T> {
-    fn new(input_neuron_num: usize, output_neuron_num: usize, activation_function: T) -> Layer<T> {
+impl Layer {
+    pub fn new(input_neuron_num: usize, output_neuron_num: usize, activation_function: SigmoidActivationFunction) -> Layer {
         // Create vector of weights
         let mut weights: Vec<f64> = vec![0.0; (input_neuron_num + 1) * output_neuron_num];
 
@@ -51,12 +51,13 @@ impl<T: ActivationFunction> Layer<T> {
 mod tests {
     
     use crate::activation_functions::SigmoidActivationFunction;
+    use crate::activation_functions::ActivationFunction;
 
     use super::*;
 
     #[test]
     fn layer_creation() {
-        let layer: Layer<SigmoidActivationFunction> = Layer::new(5, 4, SigmoidActivationFunction);
+        let layer: Layer = Layer::new(5, 4, SigmoidActivationFunction);
         assert_eq!(layer.input_neuron_num, 5);
         assert_eq!(layer.output_neuron_num, 4);
         assert_eq!(layer.weights.len(), 24);
@@ -64,7 +65,7 @@ mod tests {
 
     #[test]
     fn layer_ativation() {
-        let mut layer: Layer<SigmoidActivationFunction> = Layer::new(2, 2, SigmoidActivationFunction);
+        let mut layer: Layer = Layer::new(2, 2, SigmoidActivationFunction);
         layer.weights = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
 
         let mut inputs = vec![1.0, 2.0];
@@ -75,7 +76,7 @@ mod tests {
 
     #[test]
     fn layer_random_initialization() {
-        let layer: Layer<SigmoidActivationFunction> = Layer::new(4, 2, SigmoidActivationFunction);
+        let layer: Layer = Layer::new(4, 2, SigmoidActivationFunction);
 
         // Make sure that epsilon was calculated correctly
         for weight in &layer.weights {
@@ -90,7 +91,7 @@ mod tests {
     fn layer_activation_function() {
 
         // Checks that given activation functions works as expected
-        let layer: Layer<SigmoidActivationFunction> = Layer::new(4, 2, SigmoidActivationFunction);
+        let layer: Layer = Layer::new(4, 2, SigmoidActivationFunction);
         let inputs = vec![-2.0, -1.0, 0.0, 1.0, 2.0];
         let outputs = vec![0.11920292202211757, 0.2689414213699951, 0.5, 0.7310585786300049, 0.8807970779778823];
         assert_eq!(layer.activation_function.activate(&inputs), outputs);
