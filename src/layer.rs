@@ -32,6 +32,14 @@ impl Layer {
         }
     }
 
+    pub fn get_input_layer_size(&self) -> usize {
+        return self.input_neuron_num;
+    }
+
+    pub fn get_output_layer_size(&self) -> usize {
+        return self.output_neuron_num;
+    }
+
     fn activate(&self, inputs: &mut Vec<f64>) -> Vec<f64> {
         inputs.insert(0, 1.0);
 
