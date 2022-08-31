@@ -12,7 +12,7 @@ struct NeuralNetwork {
 }
 
 impl NeuralNetwork {
-    fn new() -> NeuralNetwork {
+    pub fn new() -> NeuralNetwork {
         NeuralNetwork { 
             input_neuron_num: 0, 
             layers: Vec::new(),
@@ -21,7 +21,7 @@ impl NeuralNetwork {
         }
     }
 
-    fn add_input(mut self, input_neurons: usize) -> Result<Self, String> {
+    pub fn add_input(mut self, input_neurons: usize) -> Result<Self, String> {
         
         // If an input layer already exists, return an error
         if self.input_created {
@@ -35,7 +35,7 @@ impl NeuralNetwork {
         Ok(self)
     }
 
-    fn add_hidden_layer(mut self, neuron_num: usize, activation_function: SigmoidActivationFunction) -> Result<Self, String> {
+    pub fn add_hidden_layer(mut self, neuron_num: usize, activation_function: SigmoidActivationFunction) -> Result<Self, String> {
 
         // If an input layer was not created or an output layer was created, return an error
         if !self.input_created {
@@ -58,16 +58,27 @@ impl NeuralNetwork {
         return Ok(self);
     }
 
-            // Check that input_neurons are equal to output neurons of previos layer
-            if self.layers[self.layers.len() - 1].get_input_layer_size() != input_neurons {
-                return Err(format!("input_neurons of hidden layer {} does not match output_neurons of previos layer", self.layers.len()));
-            }
-            
-            let layer: Layer = Layer::new(input_neurons, output_neurons, activation_function);
-            self.layers.push(layer);
-
-            return Ok(self);
+    pub fn add_output_layer(mut self, neuron_num: usize, activation_function: SigmoidActivationFunction) -> Result<Self, String> {
+        
+        // Check that an output layer was not created already
+        if self.output_created {
+            return Err("Output layer was already created".to_string());
         }
+
+        // If there are no hidden layer
+        if self.layers.len() == 0 {
+            let layer: Layer = Layer::new(self.input_neuron_num, neuron_num, activation_function);
+            self.layers.push(layer);
+        }
+        // Otherwise use last the last hidden layer
+        else {
+            let layer: Layer = Layer::new(self.layers[self.layers.len() - 1].get_input_layer_size(), neuron_num, activation_function);
+            self.layers.push(layer);
+        }
+        
+        self.output_created = true;
+        return Ok(self);
+    }
     }
 }
 
@@ -106,7 +117,7 @@ mod test {
 
         // Tests that an error is returned if more than one input layer is created
         let mut returns_error_when_incorrect: bool = false;
-        let _nn = match NeuralNetwork::new().add_input(5).unwrap().add_input(5) {
+        let _nn: NeuralNetwork = match NeuralNetwork::new().add_input(5).unwrap().add_input(5) {
             Ok(nn) => nn,
             Err(_) => {
                 returns_error_when_incorrect = true;
@@ -122,9 +133,8 @@ mod test {
     fn hidden_layer_without_input() {
 
         // Try to add a new hidden layer before the input layer
-        let mut returns_error_when_no_input = false;
-        let mut nn: NeuralNetwork = NeuralNetwork::new();
-        nn.input_created = true;
+        let mut returns_error_when_no_input: bool = false;
+        let nn: NeuralNetwork = NeuralNetwork::new();
         match nn.add_hidden_layer(5, SigmoidActivationFunction) {
             Ok(_) => {},
             Err(_) => {
@@ -139,7 +149,7 @@ mod test {
     fn hidden_layer_with_output() {
         
         // Try to add a new hidden layer after the output layer
-        let mut returns_error_when_existing_output = false;
+        let mut returns_error_when_existing_output: bool = false;
         let mut nn: NeuralNetwork = NeuralNetwork::new();
         nn.output_created = true;
         match nn.add_hidden_layer(5, SigmoidActivationFunction) {
@@ -151,4 +161,24 @@ mod test {
 
         assert!(returns_error_when_existing_output);
     }
+
+    #[test]
+    fn neural_network_output_success() {
+        
+        // Create Neural Netork without a hidden layer
+        let nn: NeuralNetwork = NeuralNetwork::new()
+            .add_input(2).unwrap()
+            .add_output_layer(2, SigmoidActivationFunction).unwrap();
+
+        assert!(nn.output_created);
+
+        // Create Neural Network with hidden layer
+        let nn: NeuralNetwork = NeuralNetwork::new()
+            .add_input(2).unwrap()
+            .add_hidden_layer(4, SigmoidActivationFunction).unwrap()
+            .add_output_layer(2, SigmoidActivationFunction).unwrap();
+
+        assert!(nn.output_created);
+    }
+
 }
