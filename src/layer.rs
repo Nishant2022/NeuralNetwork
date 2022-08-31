@@ -53,6 +53,14 @@ impl Layer {
 
         return outputs;
     }
+
+    pub fn update_weights(&mut self, weights: Vec<f64>) -> Result<Vec<f64>, String> {
+        if weights.len() != (self.input_neuron_num + 1) * self.output_neuron_num {
+            return Err(format!("Length of weights vector was not correct. Expected a vec of size {}.", (self.input_neuron_num + 1) * self.output_neuron_num));
+        }
+        self.weights = weights[..].to_vec();
+        return Ok(weights);
+    }
 }
 
 #[cfg(test)]
@@ -103,6 +111,34 @@ mod tests {
         let inputs = vec![-2.0, -1.0, 0.0, 1.0, 2.0];
         let outputs = vec![0.11920292202211757, 0.2689414213699951, 0.5, 0.7310585786300049, 0.8807970779778823];
         assert_eq!(layer.activation_function.activate(&inputs), outputs);
+    }
+
+    #[test]
+    fn layer_weights_modification_success() {
+        let mut layer: Layer = Layer::new(2, 2, SigmoidActivationFunction);
+        
+        // Make sure that weights are not initially equal
+        assert_ne!(layer.weights, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+
+        // Check that weights are equal after update
+        layer.update_weights(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap();
+        assert_eq!(layer.weights, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+    }
+
+    #[test]
+    fn layer_weights_modification_failure() {
+        let mut layer: Layer = Layer::new(2, 2, SigmoidActivationFunction);
+        
+        // Make sure that weights are not initially equal
+        assert_ne!(layer.weights, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+
+        // Check that update_weights returns an error when an improper sized vec is given
+        let mut error_thrown: bool = false;
+        match layer.update_weights(vec![1.0, 2.0]) {
+            Ok(_) => {},
+            Err(_) => error_thrown = true,
+        };
+        assert!(error_thrown);
     }
 
 }
