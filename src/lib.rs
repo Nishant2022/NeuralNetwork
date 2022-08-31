@@ -52,7 +52,7 @@ impl NeuralNetwork {
         }
         // Otherwise use last layer
         else {
-            let layer: Layer = Layer::new(self.layers[self.layers.len() - 1].get_input_layer_size(), neuron_num, activation_function);
+            let layer: Layer = Layer::new(self.layers[self.layers.len() - 1].get_output_layer_size(), neuron_num, activation_function);
             self.layers.push(layer);
         }
         return Ok(self);
@@ -72,7 +72,7 @@ impl NeuralNetwork {
         }
         // Otherwise use last the last hidden layer
         else {
-            let layer: Layer = Layer::new(self.layers[self.layers.len() - 1].get_input_layer_size(), neuron_num, activation_function);
+            let layer: Layer = Layer::new(self.layers[self.layers.len() - 1].get_output_layer_size(), neuron_num, activation_function);
             self.layers.push(layer);
         }
         
