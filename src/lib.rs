@@ -79,6 +79,14 @@ impl NeuralNetwork {
         self.output_created = true;
         return Ok(self);
     }
+
+    fn feed_forward(&self, inputs: &Vec<f64>) -> Vec<f64> {
+        let mut outputs: Vec<f64> = inputs.to_vec();
+        for layer in &self.layers {
+            outputs = layer.activate(&mut outputs);
+        }
+
+        return outputs;
     }
 }
 
@@ -181,4 +189,16 @@ mod test {
         assert!(nn.output_created);
     }
 
+    #[test]
+    fn test_feed_forward() {
+        let mut nn: NeuralNetwork = NeuralNetwork::new()
+            .add_input(2).unwrap()
+            .add_hidden_layer(3, SigmoidActivationFunction).unwrap()
+            .add_output_layer(2, SigmoidActivationFunction).unwrap();
+        
+        let input: Vec<f64> = vec![-0.5, 0.5];
+        nn.layers[0].update_weights(vec![-4.0 / 9.0, -3.0 / 9.0, -2.0 / 9.0, -1.0 / 9.0, 0.0 / 9.0, 1.0 / 9.0, 2.0 / 9.0, 3.0 / 9.0, 4.0 / 9.0]).unwrap();
+        nn.layers[1].update_weights(vec![-4.0 / 9.0, -3.0 / 9.0, -2.0 / 9.0, -1.0 / 9.0, 1.0 / 9.0, 2.0 / 9.0, 3.0 / 9.0, 4.0 / 9.0]).unwrap();
+        assert_eq!(nn.feed_forward(&input), vec![0.3207441922627842, 0.6492657332265155]);
+    }
 }

@@ -1,5 +1,6 @@
 use rand::prelude::*;
 
+use crate::activation_functions::ActivationFunction;
 use crate::activation_functions::SigmoidActivationFunction;
 
 // Neural Network layer. Contains the weights between neurons.
@@ -40,7 +41,7 @@ impl Layer {
         return self.output_neuron_num;
     }
 
-    fn activate(&self, inputs: &mut Vec<f64>) -> Vec<f64> {
+    pub fn activate(&self, inputs: &mut Vec<f64>) -> Vec<f64> {
         inputs.insert(0, 1.0);
 
         let mut outputs: Vec<f64> = vec![0.0; self.output_neuron_num];
@@ -51,7 +52,7 @@ impl Layer {
             }
         }
 
-        return outputs;
+        return self.activation_function.activate(&outputs);
     }
 
     pub fn update_weights(&mut self, weights: Vec<f64>) -> Result<Vec<f64>, String> {
@@ -82,12 +83,12 @@ mod tests {
     #[test]
     fn layer_ativation() {
         let mut layer: Layer = Layer::new(2, 2, SigmoidActivationFunction);
-        layer.weights = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        layer.weights = vec![-1.0, -0.5, 0.0, 0.75, 0.5, 0.25];
 
-        let mut inputs = vec![1.0, 2.0];
+        let mut inputs = vec![-0.5, 0.5];
         let outputs = layer.activate(&mut inputs);
 
-        assert_eq!(outputs, vec![9.0, 21.0]);
+        assert_eq!(outputs, vec![0.320821300824607, 0.6513548646660542]);
     }
 
     #[test]
