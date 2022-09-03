@@ -1,8 +1,9 @@
-use activation_functions::{ActivationFunction, SigmoidActivationFunction};
 use layer::Layer;
 
 mod activation_functions;
 mod layer;
+
+use crate::activation_functions::ActivationFunctions;
 
 struct NeuralNetwork {
     input_neuron_num: usize,
@@ -35,7 +36,7 @@ impl NeuralNetwork {
         Ok(self)
     }
 
-    pub fn add_hidden_layer(mut self, neuron_num: usize, activation_function: SigmoidActivationFunction) -> Result<Self, String> {
+    pub fn add_hidden_layer(mut self, neuron_num: usize, activation_function: ActivationFunctions) -> Result<Self, String> {
 
         // If an input layer was not created or an output layer was created, return an error
         if !self.input_created {
@@ -58,7 +59,7 @@ impl NeuralNetwork {
         return Ok(self);
     }
 
-    pub fn add_output_layer(mut self, neuron_num: usize, activation_function: SigmoidActivationFunction) -> Result<Self, String> {
+    pub fn add_output_layer(mut self, neuron_num: usize, activation_function: ActivationFunctions) -> Result<Self, String> {
         
         // Check that an output layer was not created already
         if self.output_created {
@@ -93,8 +94,7 @@ impl NeuralNetwork {
 #[cfg(test)]
 mod test {
 
-    use crate::NeuralNetwork;
-    use crate::activation_functions::SigmoidActivationFunction;
+    use crate::{NeuralNetwork, activation_functions::ActivationFunctions};
 
     #[test]
     fn neural_network_creation() {
@@ -143,7 +143,7 @@ mod test {
         // Try to add a new hidden layer before the input layer
         let mut returns_error_when_no_input: bool = false;
         let nn: NeuralNetwork = NeuralNetwork::new();
-        match nn.add_hidden_layer(5, SigmoidActivationFunction) {
+        match nn.add_hidden_layer(5, ActivationFunctions::Sigmoid) {
             Ok(_) => {},
             Err(_) => {
                 returns_error_when_no_input = true;
@@ -160,7 +160,7 @@ mod test {
         let mut returns_error_when_existing_output: bool = false;
         let mut nn: NeuralNetwork = NeuralNetwork::new();
         nn.output_created = true;
-        match nn.add_hidden_layer(5, SigmoidActivationFunction) {
+        match nn.add_hidden_layer(5, ActivationFunctions::Sigmoid) {
             Ok(_) => {},
             Err(_) => {
                 returns_error_when_existing_output = true;
@@ -176,15 +176,15 @@ mod test {
         // Create Neural Netork without a hidden layer
         let nn: NeuralNetwork = NeuralNetwork::new()
             .add_input(2).unwrap()
-            .add_output_layer(2, SigmoidActivationFunction).unwrap();
+            .add_output_layer(2, ActivationFunctions::Sigmoid).unwrap();
 
         assert!(nn.output_created);
 
         // Create Neural Network with hidden layer
         let nn: NeuralNetwork = NeuralNetwork::new()
             .add_input(2).unwrap()
-            .add_hidden_layer(4, SigmoidActivationFunction).unwrap()
-            .add_output_layer(2, SigmoidActivationFunction).unwrap();
+            .add_hidden_layer(4, ActivationFunctions::Sigmoid).unwrap()
+            .add_output_layer(2, ActivationFunctions::Sigmoid).unwrap();
 
         assert!(nn.output_created);
     }
@@ -193,8 +193,8 @@ mod test {
     fn test_feed_forward() {
         let mut nn: NeuralNetwork = NeuralNetwork::new()
             .add_input(2).unwrap()
-            .add_hidden_layer(3, SigmoidActivationFunction).unwrap()
-            .add_output_layer(2, SigmoidActivationFunction).unwrap();
+            .add_hidden_layer(3, ActivationFunctions::Sigmoid).unwrap()
+            .add_output_layer(2, ActivationFunctions::Sigmoid).unwrap();
         
         let input: Vec<f64> = vec![-0.5, 0.5];
         nn.layers[0].update_weights(vec![-4.0 / 9.0, -3.0 / 9.0, -2.0 / 9.0, -1.0 / 9.0, 0.0 / 9.0, 1.0 / 9.0, 2.0 / 9.0, 3.0 / 9.0, 4.0 / 9.0]).unwrap();
