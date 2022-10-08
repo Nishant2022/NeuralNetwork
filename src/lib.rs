@@ -1,3 +1,5 @@
+use std::usize;
+
 use layer::Layer;
 
 mod activation_functions;
@@ -81,10 +83,13 @@ impl NeuralNetwork {
         return Ok(self);
     }
 
-    fn feed_forward(&self, inputs: &Vec<f64>) -> Vec<f64> {
-        let mut outputs: Vec<f64> = inputs.to_vec();
+    fn feed_forward(&self, inputs: &Vec<f64>) -> Vec<Vec<f64>> {
+        let mut outputs: Vec<Vec<f64>> = Vec::new();
+        outputs.push(inputs.to_vec());
+        let mut index: usize = 0;
         for layer in &self.layers {
-            outputs = layer.activate(&mut outputs);
+            outputs.push(layer.activate(outputs[index].to_vec()));
+            index += 1;
         }
 
         return outputs;
@@ -199,6 +204,11 @@ mod test {
         let input: Vec<f64> = vec![-0.5, 0.5];
         nn.layers[0].update_weights(vec![-4.0 / 9.0, -3.0 / 9.0, -2.0 / 9.0, -1.0 / 9.0, 0.0 / 9.0, 1.0 / 9.0, 2.0 / 9.0, 3.0 / 9.0, 4.0 / 9.0]).unwrap();
         nn.layers[1].update_weights(vec![-4.0 / 9.0, -3.0 / 9.0, -2.0 / 9.0, -1.0 / 9.0, 1.0 / 9.0, 2.0 / 9.0, 3.0 / 9.0, 4.0 / 9.0]).unwrap();
-        assert_eq!(nn.feed_forward(&input), vec![0.3207441922627842, 0.6492657332265155]);
+        
+        let outputs: Vec<Vec<f64>> = nn.feed_forward(&input);
+
+        assert_eq!(outputs[0], vec![-0.5, 0.5]); // Input layer
+        assert_eq!(outputs[1], vec![0.40398480667348324, 0.4861146822539951, 0.5690013325681905]); // Activation of hidden layer
+        assert_eq!(outputs[2], vec![0.3207441922627842, 0.6492657332265155]); // Activation of output layer
     }
 }
