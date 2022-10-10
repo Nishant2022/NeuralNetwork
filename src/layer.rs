@@ -1,4 +1,5 @@
-use rand::prelude::*;
+use ndarray::{Array2, Array, Axis, arr2};
+use ndarray_rand::{rand_distr::Uniform, RandomExt};
 
 use crate::activation_functions::{ActivationFunctions, ActivationFunctionMethods};
 
@@ -6,22 +7,18 @@ use crate::activation_functions::{ActivationFunctions, ActivationFunctionMethods
 pub struct Layer {
     input_neuron_num: usize,
     output_neuron_num: usize,
-    weights: Vec<f64>,
+    weights: Array2<f64>,
     activation_function: ActivationFunctions,
 }
 
 impl Layer {
     pub fn new(input_neuron_num: usize, output_neuron_num: usize, activation_function: ActivationFunctions) -> Layer {
-        // Create vector of weights
-        let mut weights: Vec<f64> = vec![0.0; (input_neuron_num + 1) * output_neuron_num];
-
+        
         // Randomly initialize weights
         let epsilon_init: f64 = 6.0_f64.sqrt() / ((input_neuron_num + output_neuron_num) as f64).sqrt();
-        let mut rng = rand::thread_rng();
-
-        for i in 0..weights.len() {
-            weights[i] = rng.gen::<f64>() * 2.0 * epsilon_init - epsilon_init;
-        }
+        
+        // Create vector of weights
+        let weights: Array2<f64> = Array::random((input_neuron_num + 1, output_neuron_num), Uniform::new(-epsilon_init, epsilon_init));
 
         // Create and return layer
         Layer { 
@@ -40,31 +37,31 @@ impl Layer {
         return self.output_neuron_num;
     }
 
-    pub fn activate(&self, mut inputs: Vec<f64>) -> Vec<f64> {
-        inputs.insert(0, 1.0);
+    pub fn activate(&self, inputs: &Array2<f64>) -> Array2<f64> {
 
-        let mut outputs: Vec<f64> = vec![0.0; self.output_neuron_num];
+        // Add bias layer to inputs
+        let mut ones: Array2<f64> = Array::ones((inputs.dim().0, 1));
+        ones.append(Axis(1), inputs.view()).unwrap();
 
-        for i in 0..self.output_neuron_num {
-            for j in 0..(self.input_neuron_num + 1) {
-                outputs[i] += inputs[j] * self.weights[i * (self.input_neuron_num + 1) + j];
-            }
-        }
+        // Activations before activation function = inputs dot weights
+        let outputs = ones.dot(&self.weights);
 
         return ActivationFunctionMethods.activate(self.activation_function, &outputs);
     }
 
-    pub fn update_weights(&mut self, weights: Vec<f64>) -> Result<Vec<f64>, String> {
-        if weights.len() != (self.input_neuron_num + 1) * self.output_neuron_num {
-            return Err(format!("Length of weights vector was not correct. Expected a vec of size {}.", (self.input_neuron_num + 1) * self.output_neuron_num));
+    pub fn update_weights(&mut self, weights: Array2<f64>) -> Result<Array2<f64>, String> {
+        if weights.shape() != [self.input_neuron_num + 1, self.output_neuron_num] {
+            return Err(format!("Length of weights vector was not correct. Expected a vec of size ({}, {}). Got ({:?}).)", self.input_neuron_num + 1, self.output_neuron_num, weights.dim()));
         }
-        self.weights = weights[..].to_vec();
+        self.weights = weights.clone();
         return Ok(weights);
     }
 }
 
 #[cfg(test)]
 mod tests {
+
+    use ndarray::arr2;
 
     use super::*;
 
@@ -79,12 +76,12 @@ mod tests {
     #[test]
     fn layer_ativation() {
         let mut layer: Layer = Layer::new(2, 2, ActivationFunctions::Sigmoid);
-        layer.weights = vec![-1.0, -0.5, 0.0, 0.75, 0.5, 0.25];
+        layer.weights = arr2(&[[-1.0, -0.5], [0.0, 0.75], [0.5, 0.25]]);
 
-        let inputs: Vec<f64> = vec![-0.5, 0.5];
-        let outputs: Vec<f64> = layer.activate(inputs);
+        let inputs: Array2<f64> = arr2(&[[-0.25, 0.5]]);
+        let outputs: Array2<f64> = layer.activate(&inputs);
 
-        assert_eq!(outputs, vec![0.320821300824607, 0.6513548646660542]);
+        assert_eq!(outputs, arr2(&[[0.320821300824607, 0.3629692055196168]]));
     }
 
     #[test]
@@ -97,7 +94,7 @@ mod tests {
         }
 
         // Make sure that weights are actually different
-        assert_ne!(layer.weights[0], layer.weights[1]);
+        assert_ne!(layer.weights[[0,0]], layer.weights[[0,1]]);
     }
 
     #[test]
@@ -105,8 +102,8 @@ mod tests {
 
         // Checks that given activation functions works as expected
         let layer: Layer = Layer::new(4, 2, ActivationFunctions::Sigmoid);
-        let inputs: Vec<f64> = vec![-2.0, -1.0, 0.0, 1.0, 2.0];
-        let outputs: Vec<f64> = vec![0.11920292202211757, 0.2689414213699951, 0.5, 0.7310585786300049, 0.8807970779778823];
+        let inputs: Array2<f64> = arr2(&[[-2.0, -1.0, 0.0, 1.0, 2.0]]);
+        let outputs: Array2<f64> = arr2(&[[0.11920292202211757, 0.2689414213699951, 0.5, 0.7310585786300049, 0.8807970779778823]]);
         assert_eq!(ActivationFunctionMethods.activate(layer.activation_function, &inputs), outputs);
     }
 
@@ -115,11 +112,11 @@ mod tests {
         let mut layer: Layer = Layer::new(2, 2, ActivationFunctions::Sigmoid);
         
         // Make sure that weights are not initially equal
-        assert_ne!(layer.weights, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        assert_ne!(layer.weights, arr2(&[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]));
 
         // Check that weights are equal after update
-        layer.update_weights(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap();
-        assert_eq!(layer.weights, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        layer.update_weights(arr2(&[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])).unwrap();
+        assert_eq!(layer.weights, arr2(&[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]));
     }
 
     #[test]
@@ -127,11 +124,11 @@ mod tests {
         let mut layer: Layer = Layer::new(2, 2, ActivationFunctions::Sigmoid);
         
         // Make sure that weights are not initially equal
-        assert_ne!(layer.weights, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        assert_ne!(layer.weights, arr2(&[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]));
 
         // Check that update_weights returns an error when an improper sized vec is given
         let mut error_thrown: bool = false;
-        match layer.update_weights(vec![1.0, 2.0]) {
+        match layer.update_weights(arr2(&[[1.0, 2.0]])) {
             Ok(_) => {},
             Err(_) => error_thrown = true,
         };

@@ -1,6 +1,7 @@
 use std::usize;
 
 use layer::Layer;
+use ndarray::Array2;
 
 mod activation_functions;
 mod layer;
@@ -83,13 +84,14 @@ impl NeuralNetwork {
         return Ok(self);
     }
 
-    fn feed_forward(&self, inputs: &Vec<f64>) -> Vec<Vec<f64>> {
-        let mut outputs: Vec<Vec<f64>> = Vec::new();
-        outputs.push(inputs.to_vec());
-        let mut index: usize = 0;
-        for layer in &self.layers {
-            outputs.push(layer.activate(outputs[index].to_vec()));
-            index += 1;
+    fn feed_forward(&self, inputs: Array2<f64>) -> Vec<Array2<f64>> {
+
+        // Outputs will hold each layer's outputs, the first layer being the inputs 
+        let mut outputs: Vec<Array2<f64>> = Vec::new();
+        outputs.push(inputs);
+        for (index, layer) in self.layers.iter().enumerate() {
+            // While there is a layer, push that layer's output and move to the next
+            outputs.push(layer.activate(&outputs[index]));
         }
 
         return outputs;
@@ -98,6 +100,8 @@ impl NeuralNetwork {
 
 #[cfg(test)]
 mod test {
+
+    use ndarray::{arr2, Array2};
 
     use crate::{NeuralNetwork, activation_functions::ActivationFunctions};
 
@@ -195,20 +199,62 @@ mod test {
     }
 
     #[test]
-    fn test_feed_forward() {
+    fn test_feed_forward_single_input() {
+        // Tests feed forward function using single input
+
+        // Create a new neural network
         let mut nn: NeuralNetwork = NeuralNetwork::new()
             .add_input(2).unwrap()
             .add_hidden_layer(3, ActivationFunctions::Sigmoid).unwrap()
             .add_output_layer(2, ActivationFunctions::Sigmoid).unwrap();
         
-        let input: Vec<f64> = vec![-0.5, 0.5];
-        nn.layers[0].update_weights(vec![-4.0 / 9.0, -3.0 / 9.0, -2.0 / 9.0, -1.0 / 9.0, 0.0 / 9.0, 1.0 / 9.0, 2.0 / 9.0, 3.0 / 9.0, 4.0 / 9.0]).unwrap();
-        nn.layers[1].update_weights(vec![-4.0 / 9.0, -3.0 / 9.0, -2.0 / 9.0, -1.0 / 9.0, 1.0 / 9.0, 2.0 / 9.0, 3.0 / 9.0, 4.0 / 9.0]).unwrap();
+        // Update weights for test
+        let input: Array2<f64> = arr2(&[[-0.5, 0.5]]);
+        nn.layers[0].update_weights(arr2(&[[-4.0 / 9.0, -3.0 / 9.0, -2.0 / 9.0], 
+                                            [-1.0 / 9.0, 0.0 / 9.0, 1.0 / 9.0], 
+                                            [2.0 / 9.0, 3.0 / 9.0, 4.0 / 9.0]])).unwrap();
+        nn.layers[1].update_weights(arr2(&[[-4.0 / 9.0, -3.0 / 9.0], 
+                                            [-2.0 / 9.0, -1.0 / 9.0], 
+                                            [1.0 / 9.0, 2.0 / 9.0], 
+                                            [3.0 / 9.0, 4.0 / 9.0]])).unwrap();
         
-        let outputs: Vec<Vec<f64>> = nn.feed_forward(&input);
+        // Run the feed forward function
+        let outputs: Vec<Array2<f64>> = nn.feed_forward(input);
 
-        assert_eq!(outputs[0], vec![-0.5, 0.5]); // Input layer
-        assert_eq!(outputs[1], vec![0.40398480667348324, 0.4861146822539951, 0.5690013325681905]); // Activation of hidden layer
-        assert_eq!(outputs[2], vec![0.3207441922627842, 0.6492657332265155]); // Activation of output layer
+        assert_eq!(outputs[0], arr2(&[[-0.5, 0.5]])); // Input layer
+        assert_eq!(outputs[1], arr2(&[[0.4309986674318094, 0.45842951678320015, 0.4861146822539951]])); // Activation of hidden layer
+        assert_eq!(outputs[2], arr2(&[[0.41891059998652674, 0.4841808118596575]])); // Activation of output layer
+    }
+
+    #[test]
+    fn test_feed_forward_multiple_input() {
+        // Tests feed forward function using multiple inputs
+
+        // Create a new neural network
+        let mut nn: NeuralNetwork = NeuralNetwork::new()
+            .add_input(2).unwrap()
+            .add_hidden_layer(3, ActivationFunctions::Sigmoid).unwrap()
+            .add_output_layer(2, ActivationFunctions::Sigmoid).unwrap();
+        
+        // Update weights for test
+        let input: Array2<f64> = arr2(&[[-0.5, 0.5], [0.25, 1.0], [5.0, -15.0]]);
+        nn.layers[0].update_weights(arr2(&[[-4.0 / 9.0, -3.0 / 9.0, -2.0 / 9.0], 
+                                            [-1.0 / 9.0, 0.0 / 9.0, 1.0 / 9.0], 
+                                            [2.0 / 9.0, 3.0 / 9.0, 4.0 / 9.0]])).unwrap();
+        nn.layers[1].update_weights(arr2(&[[-4.0 / 9.0, -3.0 / 9.0], 
+                                            [-2.0 / 9.0, -1.0 / 9.0], 
+                                            [1.0 / 9.0, 2.0 / 9.0], 
+                                            [3.0 / 9.0, 4.0 / 9.0]])).unwrap();
+        
+        // Run the feed forward function
+        let outputs: Vec<Array2<f64>> = nn.feed_forward(input);
+
+        assert_eq!(outputs[0], arr2(&[[-0.5, 0.5], [0.25, 1.0], [5.0, -15.0]])); // Input layer
+        assert_eq!(outputs[1], arr2(&[[0.4309986674318094, 0.45842951678320015, 0.4861146822539951],
+                                    [0.43782349911420193, 0.5, 0.5621765008857981],
+                                    [0.012953727530695873, 0.004804752887159519, 0.0017729545947921433]])); // Activation of hidden layer
+        assert_eq!(outputs[2], arr2(&[[0.41891059998652674, 0.4841808118596575],
+                                    [0.4258531007240625, 0.4947469295231579],
+                                    [0.3902650563308087, 0.41753105797850615]])); // Activation of output layer
     }
 }
