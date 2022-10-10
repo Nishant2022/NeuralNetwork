@@ -1,5 +1,5 @@
 use std::f64::consts::E;
-use ndarray::{arr2, Array2};
+use ndarray::Array2;
 
 #[derive(Copy, Clone)]
 pub enum ActivationFunctions {
@@ -54,6 +54,8 @@ impl ActivationFunctionMethods {
                     else {0.0}
                 })
             },
+
+            // Derivative code for Tanh Function
             ActivationFunctions::Tanh => {
                 let activate_outputs: Array2<f64> = self.activate(activation_method, &inputs);
                 
@@ -66,6 +68,7 @@ impl ActivationFunctionMethods {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ndarray::arr2;
 
     #[test]
     fn sigmoid_function_activation() {
